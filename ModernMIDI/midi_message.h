@@ -36,11 +36,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace mm
 {
-    
+
     /////////////////////////////
     // (Channel) Message Type  //
     /////////////////////////////
-    
+
     enum class MessageType : uint8_t
     {
         INVALID             = 0x0,
@@ -52,7 +52,7 @@ namespace mm
         PROGRAM_CHANGE     = 0xC0,
         AFTERTOUCH         = 0xD0,
         PITCH_BEND         = 0xE0,
-        
+
         // System Common Messages
         SYSTEM_EXCLUSIVE   = 0xF0,
         TIME_CODE          = 0xF1,
@@ -62,7 +62,7 @@ namespace mm
         RESERVED2          = 0xF5,
         TUNE_REQUEST       = 0xF6,
         EOX                = 0xF7,
-        
+
         // System Realtime Messages
         TIME_CLOCK         = 0xF8,
         RESERVED3          = 0xF9,
@@ -73,11 +73,11 @@ namespace mm
         ACTIVE_SENSING     = 0xFE,
         SYSTEM_RESET       = 0xFF
     };
-    
+
     //////////////////////////
     // (Meta) Message Type  //
     //////////////////////////
-    
+
     enum class MetaEventType : uint8_t
     {
         SEQUENCE_NUMBER     = 0x00,
@@ -98,12 +98,12 @@ namespace mm
         PROPRIETARY         = 0x7F,
         UNKNOWN             = 0xFF
     };
-    
+
     inline uint32_t MakeVariableLength(std::vector<uint8_t> & buffer, uint64_t number)
     {
         uint64_t value = number;
 
-       if (value >= (1 << 28)) 
+       if (value >= (1 << 28))
            throw std::runtime_error("meta too large");
 
        buffer[0] = (value >> 21) & 0x7F;
@@ -114,23 +114,23 @@ namespace mm
        int flag = 0;
        int length = -1;
 
-       for (int i = 0; i < 3; i++) 
+       for (int i = 0; i < 3; i++)
        {
           if (buffer[i] != 0)
              flag = 1;
 
-          if (flag) 
+          if (flag)
              buffer[i] |= 0x80;
 
-          if (length == -1 && buffer[i] >= 0x80) 
+          if (length == -1 && buffer[i] >= 0x80)
              length = 4-i;
        }
 
-       if (length == -1) 
+       if (length == -1)
           length = 1;
 
-       if (length < 4) 
-          for (int i = 0; i < length; i++) 
+       if (length < 4)
+          for (int i = 0; i < length; i++)
              buffer[i] = buffer[4 - length + i];
 
        return length;
@@ -148,104 +148,104 @@ namespace mm
         MidiMessage(const uint8_t b1, const  uint8_t b2, const double ts = 0) : timestamp(ts) { data = {b1, b2}; }
         MidiMessage(const std::vector<uint8_t> msg) { data = msg; };
         MidiMessage(const MidiMessage & rhs) { *this = rhs; }
-        
+
         MidiMessage & operator = (const MidiMessage & rhs)
         {
             data = rhs.data;
             timestamp = rhs.timestamp;
             return *this;
         }
-        
+
         bool usesChannel(const int channel) const
         {
             assert(channel > 0 && channel <= 16);
             return ((data[0] & 0xF) == channel - 1) && ((data[0] & 0xF0) != 0xF0);
         }
-        
+
         int getChannel() const
         {
             if ((data[0] & 0xF0) != 0xF0)
                 return (data[0] & 0xF) + 1;
             return 0;
         }
-        
+
         unsigned char operator [] (size_t i) {  return data.at(i); }
-        
+
         unsigned char operator [] (size_t i) const { return data.at(i); }
-        
+
         bool isMetaEvent() const { return data[0] == 0xFF; }
-        
+
         MetaEventType getMetaEventSubtype() const
         {
             if (!isMetaEvent()) return MetaEventType::UNKNOWN;
             return (MetaEventType) data[1];
         }
-        
+
         MessageType getMessageType() const
         {
             if (data[0] >= uint8_t(MessageType::SYSTEM_EXCLUSIVE)) { return (MessageType) (data[0] & 0xFF); }
             else { return (MessageType) (data[0] & 0xF0); }
         }
-        
+
         bool isNoteOnOrOff() const
         {
             const auto status = getMessageType();
             return (status == MessageType::NOTE_ON) || (status == MessageType::NOTE_OFF);
         }
-        
+
         size_t messageSize() const { return data.size(); }
-        
+
         double timestamp = 0;
 
         std::vector<unsigned char> data;
     };
-    
+
     ///////////////////////
     // Message Factories //
     ///////////////////////
-    
+
     // Channel Events
 
     inline uint8_t MakeCommand(const MessageType type, const int channel)
     {
         return (uint8_t) ((uint8_t) type | mm::clamp<uint8_t> (channel, 0, channel - 1));
     }
-    
+
     inline MidiMessage MakeNoteOn(uint8_t channel, uint8_t note, uint8_t velocity)
     {
         return MidiMessage(MakeCommand(MessageType::NOTE_ON, channel), note, velocity);
     }
-    
+
     inline MidiMessage MakeNoteOff(uint8_t channel, uint8_t note, uint8_t velocity)
     {
         return MidiMessage(MakeCommand(MessageType::NOTE_OFF, channel), note, velocity);
     }
-    
+
     inline MidiMessage MakeControlChange(uint8_t channel, uint8_t control, uint8_t value)
     {
         return MidiMessage(MakeCommand(MessageType::CONTROL_CHANGE, channel), control, value);
     }
-    
+
     inline MidiMessage MakeProgramChange(uint8_t channel, uint8_t value)
     {
         return MidiMessage(MakeCommand(MessageType::PROGRAM_CHANGE, channel), value);
     }
-    
+
     inline MidiMessage MakePitchBend(uint8_t channel, int value)
     {
         return MidiMessage(MakeCommand(MessageType::PITCH_BEND, channel), value & 0x7F, (uint8_t)((value >> 7) & 0x7F));
     }
-    
+
     inline MidiMessage MakePitchBend(uint8_t channel, uint8_t lsb, uint8_t msb)
     {
         return MidiMessage(MakeCommand(MessageType::PITCH_BEND, channel), lsb, msb);
     }
-    
+
     inline MidiMessage MakePolyPressure(uint8_t channel, uint8_t note, uint8_t value)
     {
         return MidiMessage(MakeCommand(MessageType::POLY_PRESSURE, channel), note, value);
     }
-    
+
     inline MidiMessage MakeAftertouch(uint8_t channel, uint8_t value)
     {
         return MidiMessage(MakeCommand(MessageType::AFTERTOUCH, channel), value);
@@ -277,15 +277,15 @@ namespace mm
         message[0] = 0xFF;  // set meta field
         message[1] = (uint8_t) textType & 0x7F; // set meta subtype
 
-        for (int i = 0; i < varLength; i++)
+        for (std::size_t i = 0; i < varLength; i++)
             message[2 + i] = size[i]; // set meta length
 
-        for (int i = 0; i < length; i++) 
+        for (std::size_t i = 0; i < length; i++)
             message[2 + varLength + i] = text.data()[i]; // set data
 
         return MidiMessage(message);
     }
-    
+
     inline MidiMessage MakeTempoMetaEvent(int mpqn)
     {
         std::vector<uint8_t> message = { 0xff, 81, 3, (uint8_t) (mpqn >> 16), (uint8_t) (mpqn >> 8), (uint8_t) mpqn };
@@ -296,7 +296,7 @@ namespace mm
     {
         int n = 1;
         int powTwo = 0;
-        
+
         while (n < denominator)
         {
             n <<= 1;
@@ -305,7 +305,7 @@ namespace mm
         std::vector<uint8_t> message = { 0xff, 0x58, 0x04, (uint8_t) numerator, (uint8_t) powTwo, 1, 96 };
         return MidiMessage(message);
     }
-    
+
     // Where key index goes from -7 (7 flats, C♭ Major) to +7 (7 sharps, C♯ Major)
     inline MidiMessage MakeKeySignatureMetaEvent (int keyIndex, bool isMinor)
     {
@@ -313,17 +313,17 @@ namespace mm
         std::vector<uint8_t> message = { 0xff, 0x59, 0x02, (uint8_t) keyIndex, isMinor ? (uint8_t) 1 : (uint8_t) 0 };
         return MidiMessage(message);
     }
-    
+
     inline MidiMessage SongPositionMetaEvent(const int positionInBeats) noexcept
     {
         std::vector<uint8_t> message = {0xf2, (uint8_t) (positionInBeats & 127), (uint8_t) ((positionInBeats >> 7) & 127) };
         return MidiMessage(message);
     }
-    
+
     ///////////////
     // Utilities //
     ///////////////
-    
+
     inline std::string StringFromMessageType(MessageType status)
     {
         switch(status)
@@ -350,7 +350,7 @@ namespace mm
             default: return "Unknown";
         }
     }
-    
+
 } // mm
 
 #endif

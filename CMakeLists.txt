@@ -49,10 +49,11 @@ add_library(ModernMIDI STATIC
     ${MODERNMIDI_SRCS} ${MODERNMIDI_HEADERS}
     ${RTMIDI_SRCS} ${RTMIDI_HEADERS})
 
-target_include_directories(ModernMIDI 
+target_include_directories(ModernMIDI
     PRIVATE "${MODERNMIDI_SRC_DIR}"
-    PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}"
-           "${CMAKE_CURRENT_SOURCE_DIR}/third_party")
+    PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
+target_include_directories(ModernMIDI
+    SYSTEM PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/third_party")
 
 if(MODERNMIDI_DEBUG)
     target_compile_definitions(ModernMIDI PRIVATE __RTMIDI_DEBUG__)
