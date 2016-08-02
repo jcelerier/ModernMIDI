@@ -8,6 +8,8 @@ option(MODERNMIDI_DEBUG "Enable some debugging features" OFF)
 # Source files
 set(MODERNMIDI_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ModernMIDI")
 set(RTMIDI_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/rtmidi")
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+set(CMAKE_INCLUDE_CURRENT_DIR_IN_INTERFACE ON)
 
 set(MODERNMIDI_HEADERS
     "${MODERNMIDI_SRC_DIR}/concurrent_queue.h"
@@ -51,9 +53,14 @@ add_library(ModernMIDI STATIC
 
 target_include_directories(ModernMIDI
     PRIVATE "${MODERNMIDI_SRC_DIR}"
-    PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
-target_include_directories(ModernMIDI
-    SYSTEM PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/third_party")
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+        $<INSTALL_INTERFACE:include>
+        )
+        
+target_include_directories(ModernMIDI SYSTEM
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/third_party>)
 
 if(MODERNMIDI_DEBUG)
     target_compile_definitions(ModernMIDI PRIVATE __RTMIDI_DEBUG__)
@@ -85,3 +92,12 @@ elseif(UNIX)
         target_link_libraries(ModernMIDI PRIVATE asound pthread)
     endif()
 endif()
+
+# Installing
+
+install(TARGETS ModernMIDI 
+        EXPORT modernmidi-exports
+        ARCHIVE DESTINATION lib/static)
+install(EXPORT modernmidi-exports 
+        DESTINATION lib/cmake/ModernMIDI)
+export(EXPORT modernmidi-exports)
