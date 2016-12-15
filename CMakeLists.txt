@@ -5,6 +5,18 @@ project(ModernMIDI LANGUAGES CXX)
 option(MODERNMIDI_USE_JACK "Use JACK instead of ALSA as a backend on Linux" OFF)
 option(MODERNMIDI_DEBUG "Enable some debugging features" OFF)
 
+set(MODERNMIDI_INCLUDES)
+set(MODERNMIDI_LIBS)
+if(UNIX AND NOT APPLE AND NOT MODERNMIDI_USE_JACK)
+  find_package(ALSA)
+  if("${ALSA_FOUND}")
+    set(MODERNMIDI_INCLUDES "${ALSA_INCLUDE_DIRS}")
+    set(MODERNMIDI_LIBS "${ALSA_LIBRARIES}")
+  else()
+    return()
+  endif()
+endif()
+
 # Source files
 set(MODERNMIDI_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ModernMIDI")
 set(RTMIDI_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/rtmidi")
@@ -57,7 +69,7 @@ target_include_directories(ModernMIDI
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
         $<INSTALL_INTERFACE:include>
         )
-        
+
 target_include_directories(ModernMIDI SYSTEM
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/third_party>)
@@ -89,15 +101,16 @@ elseif(UNIX)
         target_link_libraries(ModernMIDI PRIVATE jack)
     else()
         target_compile_definitions(ModernMIDI PRIVATE __LINUX_ALSA__)
-        target_link_libraries(ModernMIDI PRIVATE asound pthread)
+        target_include_directories(ModernMIDI PRIVATE "${MODERNMIDI_INCLUDES}")
+        target_link_libraries(ModernMIDI PRIVATE "${MODERNMIDI_LIBS}" pthread)
     endif()
 endif()
 
 # Installing
 
-install(TARGETS ModernMIDI 
+install(TARGETS ModernMIDI
         EXPORT modernmidi-exports
         ARCHIVE DESTINATION lib/static)
-install(EXPORT modernmidi-exports 
+install(EXPORT modernmidi-exports
         DESTINATION lib/cmake/ModernMIDI)
 export(EXPORT modernmidi-exports)
