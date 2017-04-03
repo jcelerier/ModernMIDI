@@ -41,43 +41,43 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // [] Event too short
 // ==============================
 
-namespace mm 
+namespace mm
 {
 
 TrackEvent * parseEvent(int tick, int track, uint8_t const *& dataStart, MessageType lastEventTypeByte)
 {
     MessageType type = (MessageType) *dataStart++;
-        
+
     auto m = std::make_shared<MidiMessage>();
     TrackEvent * event = new TrackEvent(tick, track, m);
 
-    if (((uint8_t) type & 0xF) == 0xF) 
+    if (((uint8_t) type & 0xF) == 0xF)
     {
-        // Meta event 
-        if ((uint8_t) type == 0xFF) 
+        // Meta event
+        if ((uint8_t) type == 0xFF)
         {
             MetaEventType subtype = (MetaEventType) *dataStart++;
-            int length = read_variable_length(dataStart); 
+            int length = read_variable_length(dataStart);
 
-            event->m->data = std::vector<unsigned char>(std::max(length, 3), 0);
+            event->m->data = MidiBytes(std::max(length, 3), (std::size_t) 0);
             event->m->data[0] = (uint8_t) type;
             event->m->data[1] = (uint8_t) subtype;
             event->m->data[2] = length;
 
-            switch(subtype) 
+            switch(subtype)
             {
-                case MetaEventType::SEQUENCE_NUMBER: 
+                case MetaEventType::SEQUENCE_NUMBER:
                 {
                     if (length != 2) throw std::invalid_argument("Expected length for SEQUENCE_NUMBER event is 2");
                     read_bytes(event->m->data, dataStart, 2);
                     return event;
                 }
-                case MetaEventType::TEXT: 
-                case MetaEventType::COPYRIGHT: 
-                case MetaEventType::TRACK_NAME: 
-                case MetaEventType::INSTRUMENT: 
-                case MetaEventType::LYRIC: 
-                case MetaEventType::MARKER: 
+                case MetaEventType::TEXT:
+                case MetaEventType::COPYRIGHT:
+                case MetaEventType::TRACK_NAME:
+                case MetaEventType::INSTRUMENT:
+                case MetaEventType::LYRIC:
+                case MetaEventType::MARKER:
                 case MetaEventType::CUE:
                 case MetaEventType::PATCH_NAME:
                 case MetaEventType::DEVICE_NAME:
@@ -85,38 +85,38 @@ TrackEvent * parseEvent(int tick, int track, uint8_t const *& dataStart, Message
                     read_bytes(event->m->data, dataStart, length);
                     return event;
                 }
-                    
-                case MetaEventType::END_OF_TRACK: 
+
+                case MetaEventType::END_OF_TRACK:
                 {
                     if (length != 0) throw std::invalid_argument("Expected length for END_OF_TRACK event is 0");
                     return event;
                 }
-                case MetaEventType::TEMPO_CHANGE: 
+                case MetaEventType::TEMPO_CHANGE:
                 {
                     if (length != 3) throw std::invalid_argument("Expected length for TEMPO_CHANGE event is 3");
                     //event->m->data[3] = read_uint24_be(dataStart); // @dimitri TOFIX
                     read_bytes(event->m->data, dataStart, length);
                     return event;
                 }
-                case MetaEventType::SMPTE_OFFSET: 
+                case MetaEventType::SMPTE_OFFSET:
                 {
                     if (length != 5) throw std::invalid_argument("Expected length for SMPTE_OFFSET event is 5");
                     read_bytes(event->m->data, dataStart, length);
                     return event;
                 }
-                case MetaEventType::TIME_SIGNATURE: 
+                case MetaEventType::TIME_SIGNATURE:
                 {
                     if (length != 4) throw std::invalid_argument("Expected length for TIME_SIGNATURE event is 4");
                     read_bytes(event->m->data, dataStart, length);
                     return event;
                 }
-                case MetaEventType::KEY_SIGNATURE: 
+                case MetaEventType::KEY_SIGNATURE:
                 {
                     if (length != 2) throw std::invalid_argument("Expected length for KEY_SIGNATURE event is 2");
                     read_bytes(event->m->data, dataStart, length);
                     return event;
                 }
-                case MetaEventType::PROPRIETARY: 
+                case MetaEventType::PROPRIETARY:
                 {
                     read_bytes(event->m->data, dataStart, length);
                     return event;
@@ -131,7 +131,7 @@ TrackEvent * parseEvent(int tick, int track, uint8_t const *& dataStart, Message
             }
         }
 
-        else if (type == MessageType::SYSTEM_EXCLUSIVE) 
+        else if (type == MessageType::SYSTEM_EXCLUSIVE)
         {
             int length = read_variable_length(dataStart);
             read_bytes(event->m->data, dataStart, length);
@@ -144,27 +144,27 @@ TrackEvent * parseEvent(int tick, int track, uint8_t const *& dataStart, Message
             read_bytes(event->m->data, dataStart, length);
             return event;
         }
-        else 
+        else
         {
             throw std::runtime_error("Unrecognised MIDI event type byte");
         }
     }
 
     // Channel events
-    else 
+    else
     {
-        event->m->data = std::vector<unsigned char>(3, 0);
+        event->m->data = MidiBytes(3, 0);
         event->m->data[0] = (uint8_t) type;
 
-        // Running status... 
-        if (((uint8_t) type & 0x80) == 0) 
+        // Running status...
+        if (((uint8_t) type & 0x80) == 0)
         {
             // Reuse lastEventTypeByte as the event type.
             // eventTypeByte is actually the first parameter
             event->m->data[0] = (uint8_t) type;
             type = lastEventTypeByte;
         }
-        else 
+        else
         {
             event->m->data[1] = uint8_t(*dataStart++);
             lastEventTypeByte = type;
@@ -191,7 +191,7 @@ TrackEvent * parseEvent(int tick, int track, uint8_t const *& dataStart, Message
                 return event;
             case MessageType::AFTERTOUCH:
                 return event;
-            case MessageType::PITCH_BEND: 
+            case MessageType::PITCH_BEND:
                 event->m->data[2] = uint8_t(*dataStart++);
                 return event;
             default:
@@ -202,35 +202,35 @@ TrackEvent * parseEvent(int tick, int track, uint8_t const *& dataStart, Message
 
 MidiFileReader::MidiFileReader() : tracks(0), ticksPerBeat(480), startingTempo(120)
 {
-        
+
 }
 
 MidiFileReader::~MidiFileReader()
 {
 
 }
-    
+
 void MidiFileReader::parseInternal(const std::vector<uint8_t> & buffer)
 {
     const uint8_t * dataPtr = buffer.data();
-        
+
     int headerId = read_uint32_be(dataPtr);
     int headerLength = read_uint32_be(dataPtr);
 
-    if (headerId != 'MThd' || headerLength != 6) 
+    if (headerId != 'MThd' || headerLength != 6)
     {
         std::cerr << "Bad .mid file - couldn't parse header" << std::endl;
         return;
     }
-        
-    read_uint16_be(dataPtr); //@tofix format type -> save for later eventually 
+
+    read_uint16_be(dataPtr); //@tofix format type -> save for later eventually
 
     int trackCount = read_uint16_be(dataPtr);
     int timeDivision = read_uint16_be(dataPtr);
-        
+
     // CBB: deal with the SMPTE style time coding
     // timeDivision is described here http://www.sonicspot.com/guide/midifiles.html
-    if (timeDivision & 0x8000) 
+    if (timeDivision & 0x8000)
     {
         std::cerr << "Found SMPTE time frames" << std::endl;
         //int fps = (timeDivision >> 16) & 0x7f;
@@ -238,18 +238,18 @@ void MidiFileReader::parseInternal(const std::vector<uint8_t> & buffer)
         // given beats per second, timeDivision should be derivable.
         return;
     }
-        
-    startingTempo = 120.0f; // midi default 
+
+    startingTempo = 120.0f; // midi default
     ticksPerBeat = float(timeDivision); // ticks per beat (a beat is defined as a quarter note)
-        
-    for (int i = 0; i < trackCount; ++i) 
+
+    for (int i = 0; i < trackCount; ++i)
     {
         MidiTrack track;
 
         headerId = read_uint32_be(dataPtr);
         headerLength = read_uint32_be(dataPtr);
 
-        if (headerId != 'MTrk') 
+        if (headerId != 'MTrk')
         {
             throw std::runtime_error("Bad .mid file - couldn't find track header");
         }
@@ -260,10 +260,10 @@ void MidiFileReader::parseInternal(const std::vector<uint8_t> & buffer)
 
         int tickCount = 0;
 
-        while (dataPtr < dataEnd) 
+        while (dataPtr < dataEnd)
         {
             auto tick = read_variable_length(dataPtr);
-            
+
             if (useAbsoluteTicks)
             {
                 tickCount += tick;
@@ -279,7 +279,7 @@ void MidiFileReader::parseInternal(const std::vector<uint8_t> & buffer)
             {
                 runningEvent = MessageType(ev->m->data[0]);
             }
-                
+
             track.push_back(ev);
         }
 

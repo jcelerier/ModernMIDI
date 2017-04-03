@@ -38,7 +38,7 @@ class MidiOutput
 {
     bool attached = false;
 
-    bool sendRaw(std::vector<unsigned char> msg);
+    bool sendRaw(RtMidiBytes msg);
 
 public:
 
@@ -49,7 +49,7 @@ public:
     bool openPort(std::string deviceName);
     bool openVirtualPort(std::string portName);
     void closePort();
-    
+
     bool send(const std::vector<uint8_t> & msg);
     bool send(const mm::MidiMessage & msg);
 

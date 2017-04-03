@@ -31,6 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "modernmidi.h"
 #include <stdint.h>
 #include <vector>
+#include <chobo/small_vector.hpp>
 #include <memory>
 #include <assert.h>
 
@@ -141,19 +142,31 @@ namespace mm
     //////////////////
 
     // Channels are indexed @ 1 to 16 (not 0-15)
+    using MidiBytes = chobo::small_vector<uint8_t, 4>;
     struct MidiMessage
     {
         MidiMessage() { data = {0, 0, 0}; }
         MidiMessage(const uint8_t b1, const uint8_t b2, const uint8_t b3, const double ts = 0) : timestamp(ts) { data = {b1, b2, b3}; }
         MidiMessage(const uint8_t b1, const  uint8_t b2, const double ts = 0) : timestamp(ts) { data = {b1, b2}; }
-        MidiMessage(const std::vector<uint8_t> msg) { data = msg; };
+        MidiMessage(const MidiBytes& msg): data{msg} { }
+        MidiMessage(MidiBytes&& msg): data{std::move(msg)} { }
+
+        MidiMessage(const std::vector<uint8_t>& msg): data{msg.begin(), msg.end()} { }
+
         MidiMessage(const MidiMessage & rhs) { *this = rhs; }
+        MidiMessage(const MidiMessage&& rhs) { *this = std::move(rhs); }
 
         MidiMessage & operator = (const MidiMessage & rhs)
         {
             data = rhs.data;
             timestamp = rhs.timestamp;
             return *this;
+        }
+        MidiMessage & operator = (MidiMessage && rhs)
+        {
+          data = std::move(rhs.data);
+          timestamp = rhs.timestamp;
+          return *this;
         }
 
         bool usesChannel(const int channel) const
@@ -197,7 +210,7 @@ namespace mm
 
         double timestamp = 0;
 
-        std::vector<unsigned char> data;
+        MidiBytes data;
     };
 
     ///////////////////////
@@ -260,8 +273,7 @@ namespace mm
 
     inline MidiMessage MakeChannelMetaEvent (const int channel)
     {
-        std::vector<uint8_t> message = { 0xff, 0x20, 0x01, clamp<uint8_t> (0, 0xff, channel - 1) };
-        return MidiMessage(message);
+        return MidiMessage(MidiBytes{ 0xff, 0x20, 0x01, clamp<uint8_t> (0, 0xff, channel - 1) });
     }
 
     inline MidiMessage MakeTextMetaEvent(MetaEventType textType, std::string text)

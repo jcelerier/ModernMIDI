@@ -67,6 +67,8 @@ target_include_directories(ModernMIDI
     PRIVATE "${MODERNMIDI_SRC_DIR}"
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+        $<BUILD_INTERFACE:${OSSIA_3RDPARTY_FOLDER}/chobo-shl/include>
+        $<BUILD_INTERFACE:${OSSIA_3RDPARTY_FOLDER}/GSL/include>
         $<INSTALL_INTERFACE:include>
         )
 
