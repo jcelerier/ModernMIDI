@@ -129,5 +129,5 @@ bool MidiOutput::send(const std::vector<uint8_t> & msg)
 
 bool MidiOutput::send(const mm::MidiMessage & msg)
 {
-    return sendRaw({(unsigned char*)msg.data.data(), (int)msg.data.size()});
+  return sendRaw({(unsigned char*)msg.data.data(), (int)msg.data.size()});
 }

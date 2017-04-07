@@ -45,18 +45,18 @@ public:
 
     MidiInput(const std::string & name);
     ~MidiInput();
-    
+
     bool openPort(int32_t portNumber);
     bool openPort(std::string deviceName);
     bool openVirtualPort(std::string portName);
     void closePort();
-    
+
     void ignoreTypes(bool midiSysex, bool midiTiming, bool midiSense);
     RtMidiIn * getInputDevice() { return inputDevice.get(); }
 
     mm::MidiDeviceInfo info;
 
-    std::function<void (const mm::MidiMessage msg)> messageCallback;
+    std::function<void (const mm::MidiMessage& msg)> messageCallback;
 };
 
 }
