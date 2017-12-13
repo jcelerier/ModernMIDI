@@ -31,7 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "modernmidi.h"
 #include <stdint.h>
 #include <vector>
-#include <chobo/small_vector.hpp>
+#include <boost/container/small_vector.hpp>
 #include <memory>
 #include <assert.h>
 
@@ -142,7 +142,7 @@ namespace mm
     //////////////////
 
     // Channels are indexed @ 1 to 16 (not 0-15)
-    using MidiBytes = chobo::small_vector<uint8_t, 4>;
+    using MidiBytes = boost::container::small_vector<uint8_t, 4>;
     struct MidiMessage
     {
         MidiMessage() { data = {0, 0, 0}; }
