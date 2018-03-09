@@ -5,6 +5,8 @@ project(ModernMIDI LANGUAGES CXX)
 option(MODERNMIDI_USE_JACK "Use JACK instead of ALSA as a backend on Linux" OFF)
 option(MODERNMIDI_DEBUG "Enable some debugging features" OFF)
 
+find_package(Boost REQUIRED)
+
 set(MODERNMIDI_INCLUDES)
 set(MODERNMIDI_LIBS)
 if(UNIX AND NOT APPLE AND NOT MODERNMIDI_USE_JACK)
@@ -62,7 +64,8 @@ set(RTMIDI_SRCS "${RTMIDI_SRC_DIR}/RtMidi.cpp")
 add_library(ModernMIDI STATIC
     ${MODERNMIDI_SRCS} ${MODERNMIDI_HEADERS}
     ${RTMIDI_SRCS} ${RTMIDI_HEADERS})
-
+  
+target_link_libraries(ModernMIDI PUBLIC Boost::boost)
 target_include_directories(ModernMIDI
     PRIVATE "${MODERNMIDI_SRC_DIR}"
     PUBLIC
