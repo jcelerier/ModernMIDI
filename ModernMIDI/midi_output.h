@@ -30,6 +30,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "modernmidi.h"
 #include "midi_message.h"
+#if defined(__EMSCRIPTEN__)
+#define GSL_USE_STD_BYTE 0
+#endif
 #include <gsl/span>
 using RtMidiBytes = gsl::span<unsigned char>;
 
